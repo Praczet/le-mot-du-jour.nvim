@@ -1,174 +1,171 @@
 # le-mot-du-jour.nvim
 
-**Mot‑du‑Jour for Neovim.**
+A Neovim plugin that politely reminds you that learning French vocabulary
+is still a thing you decided to do.
 
-A small plugin that fetches a **French word of the day**, shows its **definition**, and provides an **English translation** — directly inside Neovim.
+It fetches a **French word of the day**, extracts a definition from Wiktionary,
+attempts a translation using whatever CLI translator you have installed,
+caches everything, and displays the result on your dashboard.
 
-The word is fetched from:
-
-→ <https://trouve-mot.fr/api/daily>
-
-Definitions are fetched locally using `sdcv`.  
-Translations use `dict` (preferred) or `trans` as fallback.
-
-The result is cached daily.
+No drama. No AI hype. Just words.
 
 ---
 
-## Features
+## What it does
 
-- Fetches **French word of the day**
-- Shows **French definition**
-- Shows **English translation**
-- Caches results per day
-- Maintains a simple history log
-- Dashboard‑friendly formatted output
-- Async execution (Neovim stays responsive)
-- Fallback logic for missing tools
+- Fetches a **daily French word** from an external API
+- Pulls **definitions from Wiktionary** (and cleans the wikicode mess)
+- Translates using:
+  - `dict` (civilized choice)
+  - `trans` (acceptable fallback)
+- Caches results locally so you don’t DOS Wiktionary
+- Renders nicely formatted output for dashboards
+- Runs everything **asynchronously** so Neovim remains usable
 
 ---
 
 ## Requirements
 
-External tools:
+Hard requirements:
 
+- Neovim **0.9+**
 - `curl`
-- `sdcv`
-- `jq` *(optional but recommended)*
-- `dict` *(preferred translator)*
-- `trans` *(fallback translator)*
 
-Example install (Arch):
+Strongly recommended for better life decisions:
 
-```bash
-sudo pacman -S curl sdcv jq dictd
-yay -S translate-shell
-```
+- `dict`
+- `trans`
+- `jq` (pretty JSON makes debugging less depressing)
 
 ---
 
 ## Installation
 
-Using lazy.nvim:
+### lazy.nvim
 
 ```lua
 {
-    "yourname/le-mot-du-jour.nvim",
-    config = function()
-        require("mdj").setup()
-    end
+  "yourname/le-mot-du-jour.nvim",
+  config = function()
+    require("le-mot-du-jour").setup()
+  end,
 }
 ```
+
+If you use another plugin manager, you already know what to do.
 
 ---
 
 ## Configuration
 
-Default configuration:
+Default configuration is intentionally boring:
 
 ```lua
-require("mdj").setup({
-    cache_dir = vim.fn.stdpath("data") .. "/mdj",
-    rows = 3,
-    width = 60,
-    dashboard = "snacks.dashboard",
-    highlights = {
-        word = "Title",
-        definition = "Normal",
-        last_def = "Special",
-        translation = "Comment",
-    },
+require("le-mot-du-jour").setup({
+  cache_dir = vim.fn.stdpath("data") .. "/mdj",
+  rows = 3,
+  width = 60,
+  dashboard = "snacks.dashboard",
+  highlights = {
+    word = "key",
+    definition = "text",
+    last_def = "dir",
+    translation = "dir",
+  },
 })
 ```
+
+You may tweak it. You probably won’t.
 
 ---
 
 ## Usage
 
-### Update word manually
+### Dashboard
 
-```vim
+Example for Snacks dashboard:
+
+```lua
+{
+  text = function()
+    return require("le-mot-du-jour").get_mdj_for_dashboard(60)
+  end,
+}
+```
+
+Result:
+
+- A French word
+- A definition
+- Some meanings
+- Maybe a translation
+- A vague sense of linguistic progress
+
+### Manual update
+
+```
 :MotDuJourUpdate
 ```
 
-Or force specific word:
-
-```vim
-:MotDuJourUpdate maison
-```
-
----
-
-### Dashboard integration
-
-Example with snacks.dashboard:
-
-```lua
-local mdj = require("mdj")
-
-dashboard.section.mdj = function()
-    return le-mot-du-jour.get_mdj_for_dashboard(60)
-end
-```
-
-On first load the plugin shows:
+Force a specific word:
 
 ```
-Loading word of the day...
+:MotDuJourUpdate bonjour
 ```
 
-Then updates automatically.
+Useful for testing.
+Also useful for cheating.
 
 ---
 
 ## Cache
 
-Daily cache file:
+Stored in:
 
 ```
-~/.local/share/nvim/mdj/mdj_YYYYMMDD.json
+~/.local/share/nvim/mdj/
 ```
 
-History log:
+Files:
 
-```
-~/.local/share/nvim/mdj/mdj_log.json
-```
+- `mdj_YYYYMMDD.json` — daily cache
+- `mdj_log.json` — historical record of your vocabulary journey
+
+One day you might read it.  
+Today is not that day.
 
 ---
 
-## Translation logic
+## Architecture (calm and predictable)
 
-1. Try `dict`
-2. Fallback to `trans`
-3. If both missing → translation disabled
+Modules:
 
-`dict` provides dictionary‑style definitions.  
-`trans` provides sentence‑style translation.
+- `api.lua` — talks to the internet so you don’t have to
+- `parse.lua` — removes Wiktionary’s creative formatting
+- `cache.lua` — writes JSON like a responsible adult
+- `dashboard.lua` — builds pretty lines
+- `commands.lua` — defines `:MotDuJourUpdate`
+- `util.lua` — async jobs + helpers
+- `init.lua` — orchestration layer
+- `config.lua` — defaults nobody reads
+
+Flow:
+
+```
+daily word → definition → translation → cache → dashboard
+```
+
+Nothing magical happens here.
 
 ---
 
-## Definition logic
+## Philosophy
 
-Definition is extracted using:
-
-```
-sdcv → JSON → jq → sed → pandoc
-```
-
-This pipeline may change in future versions.
-
----
-
-## Future ideas
-
-- Floating window viewer
-- Hover word translation
-- Treesitter word detection
-- Weekly / monthly word modes
-- Offline word database fallback
-- Pronunciation support
-- TUI history picker
+- Terminal tools first
+- Async always
+- Small surface area
+- No unnecessary abstractions
+- No startup cost beyond your own expectations
 
 ---
 
@@ -176,12 +173,5 @@ This pipeline may change in future versions.
 
 MIT
 
----
-
-## Philosophy
-
-This plugin does one thing:
-
-> It reminds you that languages exist.
-
-And occasionally teaches one word.
+Do whatever you want.  
+Just don’t blame the plugin if your French is still terrible.
