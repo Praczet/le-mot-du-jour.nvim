@@ -1,5 +1,58 @@
 local M = {}
 
+function M.clean_wikicode(text)
+	if not text then
+		return ""
+	end
+
+	-- Remove references and comments
+	text = text:gsub("<ref[^>]*>.-</ref>", "")
+	text = text:gsub("<ref[^>]*/>", "")
+	text = text:gsub("<!%-%-.-%-%->", "")
+
+	-- Extract text from Links: [[Target|Label]] -> Label
+	text = text:gsub("%[%[([^|%]]+)%|([^%]]+)%]%]", "%2")
+	-- Links: [[Target]] -> Target
+	text = text:gsub("%[%[([^%]]+)%]%]", "%1")
+
+	-- Preserve specific templates' text
+	text = text:gsub("{{lien%|([^}|]+)[^}]*}}", "%1")
+	text = text:gsub("{{l%|[^|]+%|([^}|]+)[^}]*}}", "%1")
+	text = text:gsub("{{w%|([^}|]+)[^}]*}}", "%1")
+
+	-- Format domain templates into parens
+	text = text:gsub("{{term%|([^}|]+)[^}]*}}", "(%1)")
+	text = text:gsub("{{lexique%|([^}|]+)[^}]*}}", "(%1)")
+	text = text:gsub("{{domaine%|([^}|]+)[^}]*}}", "(%1)")
+	text = text:gsub("{{figuré.-}}", "(figuré)")
+	text = text:gsub("{{populaire.-}}", "(populaire)")
+	text = text:gsub("{{spécialement.-}}", "(spécialement)")
+	text = text:gsub("{{par analogie.-}}", "(par analogie)")
+	text = text:gsub("{{par extension.-}}", "(par extension)")
+
+	-- Clean all other templates safely (run multiple times to handle nesting)
+	for _ = 1, 3 do
+		text = text:gsub("{{[^{}]-}}", "")
+	end
+
+	-- Clean Wiki formatting (bold, italic) and leftover HTML
+	text = text:gsub("'''", "")
+	text = text:gsub("''", "")
+	text = text:gsub("<[^>]+>", "")
+
+	-- Clean up weird spacing or empty parentheses
+	text = text:gsub("%(%s*%)", "")
+	text = text:gsub("%s+", " ")
+	text = vim.trim(text)
+
+	-- Capitalize the first letter
+	if #text > 0 then
+		text = text:sub(1, 1):upper() .. text:sub(2)
+	end
+
+	return text
+end
+
 function M.parse_definitions(text)
 	local result = { def = "", meanings = {} }
 
@@ -7,38 +60,35 @@ function M.parse_definitions(text)
 		return result
 	end
 
-	local first_num = text:find("%(%d+%)")
-	if not first_num then
-		result.def = vim.trim(text)
-		return result
+	-- Isolate the French section
+	local fr_section = text:match("==%s*{{langue|fr}}%s*==(.*)")
+	if not fr_section then
+		fr_section = text:match("==%s*Français%s*==(.*)")
 	end
 
-	result.def = vim.trim(text:sub(1, first_num - 1))
-
-	local pos = first_num
-	while true do
-		local start_pos, finish_pos = text:find("(%(%d+%))", pos)
-		if not start_pos then
-			break
+	if not fr_section then
+		fr_section = text
+	else
+		-- Stop at the next major section level
+		local next_section = fr_section:find("\n==[^=]")
+		if next_section then
+			fr_section = fr_section:sub(1, next_section - 1)
 		end
+	end
 
-		local next_marker = text:find("\n%(", finish_pos + 1)
-		local defn
-		if next_marker then
-			defn = text:sub(finish_pos + 1, next_marker - 1)
-		else
-			defn = text:sub(finish_pos + 1)
+	-- Extract definitions starting with '#' but not '#:' (examples) or '#*' (quotes)
+	local definitions = {}
+	for line in fr_section:gmatch("\n# ([^:*][^\n]*)") do
+		local clean = M.clean_wikicode(line)
+		if clean and #clean > 0 then
+			table.insert(definitions, clean)
 		end
+	end
 
-		defn = vim.trim(defn)
-		if #defn > 0 then
-			table.insert(result.meanings, defn)
-		end
-
-		if next_marker then
-			pos = next_marker + 1
-		else
-			break
+	if #definitions > 0 then
+		result.def = definitions[1]
+		for i = 2, #definitions do
+			table.insert(result.meanings, definitions[i])
 		end
 	end
 
