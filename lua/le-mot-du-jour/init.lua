@@ -6,6 +6,8 @@ local cache = require("le-mot-du-jour.cache")
 local dashboard = require("le-mot-du-jour.dashboard")
 local commands = require("le-mot-du-jour.commands")
 
+local daily_random = "random"
+
 local M = {}
 
 M.config = vim.deepcopy(config_mod.defaults)
@@ -92,7 +94,22 @@ function M.create_word_of_day(callback, forced_word)
 		return
 	end
 
+	if M.config.daily_random == "random" then
+		vim.notify("Fetching a random word...", vim.log.levels.INFO)
+		api.get_random_word(function(err, word)
+			if err then
+				util.notify(err, vim.log.levels.ERROR)
+				if callback then
+					callback(nil)
+				end
+				return
+			end
+			after_word(word)
+		end)
+		return
+	end
 	api.get_daily_word(function(err, word)
+		vim.notify("Fetching the word of the day...", vim.log.levels.INFO)
 		if err then
 			util.notify(err, vim.log.levels.ERROR)
 			if callback then

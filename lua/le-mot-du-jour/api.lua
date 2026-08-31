@@ -3,7 +3,7 @@ local util = require("le-mot-du-jour.util")
 local M = {}
 
 function M.get_daily_word(callback)
-	util.run_cmd({ "curl", "-fsSL", "https://trouve-mot.fr/api/random" }, function(err, out)
+	util.run_cmd({ "curl", "-fsSL", "https://trouve-mot.fr/api/daily" }, function(err, out)
 		if err then
 			callback("Failed to fetch daily word: " .. err, nil)
 			return
@@ -26,6 +26,33 @@ function M.get_daily_word(callback)
 		end
 
 		callback("Daily word payload has unexpected shape", nil)
+	end)
+end
+
+function M.get_random_word(callback)
+	util.run_cmd({ "curl", "-fsSL", "https://trouve-mot.fr/api/random" }, function(err, out)
+		if err then
+			callback("Failed to fetch daily word: " .. err, nil)
+			return
+		end
+
+		local ok, data = pcall(vim.fn.json_decode, out)
+		if not ok or not data then
+			callback("Failed to parse daily word JSON", nil)
+			return
+		end
+
+		if data.name and data.name ~= "" then
+			callback(nil, data.name, data)
+			return
+		end
+
+		if vim.islist(data) and data[1] and data[1].name then
+			callback(nil, data[1].name, data[1])
+			return
+		end
+
+		callback("Random word payload has unexpected shape", nil)
 	end)
 end
 
