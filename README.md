@@ -65,6 +65,7 @@ require("le-mot-du-jour").setup({
   cache_dir = vim.fn.stdpath("data") .. "/mdj",
   rows = 3,
   width = 60,
+  daily_random = "random", 
   dashboard = "snacks.dashboard",
   highlights = {
     word = "key",
@@ -76,6 +77,9 @@ require("le-mot-du-jour").setup({
 ```
 
 You may tweak it. You probably won’t.
+
+> [!Note] config.daily_random
+> Since the API recently is stuck on a single word, you can set this to `"random"` to get a random word from the API instead of the daily one.
 
 ---
 
