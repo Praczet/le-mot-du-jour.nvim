@@ -3,7 +3,7 @@ local util = require("le-mot-du-jour.util")
 local M = {}
 
 function M.get_daily_word(callback)
-	util.run_cmd({ "curl", "-fsSL", "https://trouve-mot.fr/api/daily" }, function(err, out)
+	util.run_cmd({ "curl", "-fsSL", "https://trouve-mot.fr/api/random" }, function(err, out)
 		if err then
 			callback("Failed to fetch daily word: " .. err, nil)
 			return
