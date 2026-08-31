@@ -6,8 +6,6 @@ local cache = require("le-mot-du-jour.cache")
 local dashboard = require("le-mot-du-jour.dashboard")
 local commands = require("le-mot-du-jour.commands")
 
-local daily_random = "random"
-
 local M = {}
 
 M.config = vim.deepcopy(config_mod.defaults)
